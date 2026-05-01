@@ -1,14 +1,40 @@
 """Pytest configuration and shared fixtures."""
+from pathlib import Path
 import os
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 
-from src.doc_quality.api.main import app
-from src.doc_quality.core.database import Base, SessionLocal, get_db
-from src.doc_quality.models.orm import ReviewRecordORM
-from src.doc_quality.tools.route_coverage_audit import RouteAudit
+
+def _overlay_env_from_file(env_path: Path) -> None:
+    """Set os.environ entries from KEY=value lines so imports see them before pydantic reads .env."""
+    content = env_path.read_text(encoding="utf-8")
+    for raw_line in content.splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#"):
+            continue
+        if line.startswith("export "):
+            line = line[7:].strip()
+        key, sep, rest = line.partition("=")
+        if not sep:
+            continue
+        key = key.strip()
+        val = rest.strip().strip('"').strip("'")
+        os.environ[key] = val
+
+
+# Repo root /.env.test — applied before any app/database import so DATABASE_URL reflects tests.
+_REPO_ROOT = Path(__file__).resolve().parents[1]
+_env_test_path = _REPO_ROOT / ".env.test"
+if _env_test_path.is_file():
+    _overlay_env_from_file(_env_test_path)
+
+
+from src.doc_quality.api.main import app  # noqa: E402 — after .env.test overlay for DB/url settings
+from src.doc_quality.core.database import Base, SessionLocal, get_db  # noqa: E402
+from src.doc_quality.models.orm import ReviewRecordORM  # noqa: E402
+from src.doc_quality.tools.route_coverage_audit import RouteAudit  # noqa: E402
 
 # Use explicit API key in tests for route authentication.
 os.environ.setdefault("SECRET_KEY", "test-api-key")
