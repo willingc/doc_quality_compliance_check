@@ -1,0 +1,4 @@
+export type StandardMappingRequestRecord = { request_id: string; standard_code: string; control_id: string; rationale: string; status: 'open' | 'approved' | 'rejected'; submitted_at: string };
+const demo: StandardMappingRequestRecord[] = [];
+export async function fetchStandardMappingRequests(): Promise<StandardMappingRequestRecord[]> { return demo; }
+export async function submitStandardMappingRequest(input: Omit<StandardMappingRequestRecord, 'request_id' | 'status' | 'submitted_at'>): Promise<{ ok: boolean; item: StandardMappingRequestRecord; message: string }> { const item: StandardMappingRequestRecord = { request_id: `REQ-${Date.now()}`, standard_code: input.standard_code, control_id: input.control_id, rationale: input.rationale, status: 'open', submitted_at: new Date().toISOString() }; demo.unshift(item); return { ok: true, item, message: 'Request submitted' }; }
